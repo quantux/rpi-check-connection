@@ -1,6 +1,23 @@
 #!/bin/bash
-if ! ping -c 1 -W 1 8.8.8.8 > /dev/null; then
-        echo "Conexão perdida. Tentando reconectar..."
-        sudo dhclient -r eth0
-	sudo dhclient eth0
+
+# Nome do container Docker que será reiniciado
+CONTAINER_NAME="security_camera"
+
+# Função para verificar a conectividade com a internet
+check_internet() {
+    ping -c 1 -W 1 8.8.8.8 > /dev/null
+    return $?
+}
+
+# Verificar se a internet está fora
+if ! check_internet; then
+    # Reiniciar a interface de rede até a internet voltar
+    while ! check_internet; do
+        sudo dhclient -r eth0 > /dev/null 2>&1
+        sudo dhclient eth0 > /dev/null 2>&1
+        sleep 5  # Aguarda 5 segundos antes de tentar novamente
+    done
+
+    # Reiniciar o container Docker
+    docker restart "$CONTAINER_NAME" > /dev/null 2>&1
 fi
