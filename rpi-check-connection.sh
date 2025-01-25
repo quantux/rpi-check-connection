@@ -19,5 +19,6 @@ if ! check_internet; then
     done
 
     # Reiniciar o container Docker
-    docker restart "$CONTAINER_NAME" > /dev/null 2>&1
+    docker stop "$CONTAINER_NAME" > /dev/null 2>&1
+    docker run --name security_camera --rm -d -v /home/pi/workspace/security_camera/app:/app -v /home/pi/Vídeos:/app/records -t security_camera > /dev/null 2>&1
 fi
