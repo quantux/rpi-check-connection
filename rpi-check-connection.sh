@@ -16,7 +16,7 @@ while true; do
         while ! check_internet; do
             sudo dhclient -r eth0 > /dev/null 2>&1
             sudo dhclient eth0 > /dev/null 2>&1
-            sleep 5  # Aguarda 5 segundos antes de tentar novamente
+            sleep 1  # Aguarda 5 segundos antes de tentar novamente
         done
 
         # Reiniciar o container Docker
@@ -25,5 +25,5 @@ while true; do
     fi
 
     # Aguardar 5 segundos antes de verificar a conexão novamente
-    sleep 5
+    sleep 1
 done
