@@ -1,57 +1,25 @@
 #!/bin/bash
 
-# Nome do container Docker que será reiniciado
-CONTAINER_NAME="security_camera"
+# Definir o IP do gateway
+GATEWAY="192.168.1.1"
 
-# Função para verificar a conectividade com a internet
-check_internet() {
-    ping -c 1 -W 1 8.8.8.8 > /dev/null
+# Função para verificar se o gateway está ativo
+check_gateway() {
+    ping -c 1 $GATEWAY > /dev/null 2>&1
     return $?
 }
 
-# Verificar a conexão a cada X segundos
 while true; do
-    echo "Verificando se o container '$CONTAINER_NAME' está em execução..."
-
-    # Verificar se o container está em execução
-    if [ ! "$(docker ps -a -q -f name=$CONTAINER_NAME)" ]; then
-        echo "O container '$CONTAINER_NAME' não está em execução."
-
-        # Verificar se há conectividade com a internet
-        if check_internet; then
-            echo "Conectividade com a internet verificada. Iniciando o container..."
-            # Iniciar o container se a internet estiver ok
-            docker run --name "$CONTAINER_NAME" --rm -d -v /home/pi/workspace/security_camera/app:/app -v /home/pi/Vídeos:/app/records -t security_camera > /dev/null 2>&1
-            echo "Container '$CONTAINER_NAME' iniciado com sucesso."
-        else
-            echo "Sem conectividade com a internet. Não será possível iniciar o container."
-        fi
+    check_gateway
+    if [ $? -eq 0 ]; then
+        # O gateway está ativo, vamos reiniciar a interface eth0
+        echo "Gateway está ativo. Reiniciando a interface eth0."
+        dhclient -r eth0 > /dev/null 2>&1
+        dhclient eth0 > /dev/null 2>&1
+        sleep 5
     else
-        echo "O container '$CONTAINER_NAME' está em execução."
+        # O gateway não está ativo, vamos testar a cada segundo
+        echo "Gateway não está ativo. Testando novamente em 1 segundo."
+        sleep 1
     fi
-
-    # Verificar a conexão
-    echo "Verificando conectividade com a internet..."
-    if ! check_internet; then
-        echo "Sem conectividade com a internet. Tentando reiniciar a interface de rede..."
-        # Reiniciar a interface de rede até a internet voltar
-        while ! check_internet; do
-            echo "Tentando obter novo IP..."
-            sudo dhclient -r eth0 > /dev/null 2>&1
-            sudo dhclient eth0 > /dev/null 2>&1
-            sleep 1  # Aguarda antes de tentar novamente
-        done
-
-        echo "Conectividade com a internet restabelecida. Reiniciando o container..."
-        # Reiniciar o container após restaurar a conexão
-        docker stop "$CONTAINER_NAME" > /dev/null 2>&1
-        docker run --name "$CONTAINER_NAME" --rm -d -v /home/pi/workspace/security_camera/app:/app -v /home/pi/Vídeos:/app/records -t security_camera > /dev/null 2>&1
-        echo "Container '$CONTAINER_NAME' reiniciado com sucesso."
-    else
-        echo "Conexão com a internet está ok."
-    fi
-
-    # Aguardar antes de verificar a conexão novamente
-    sleep 1
 done
-
