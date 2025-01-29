@@ -1,25 +1,23 @@
 #!/bin/bash
 
-# Definir o IP do gateway
+# Defina o gateway e a interface
 GATEWAY="192.168.1.1"
+INTERFACE="eth0"  # Substitua por sua interface de rede, se necessário
 
-# Função para verificar se o gateway está ativo
+# Função para verificar a conectividade com o gateway
 check_gateway() {
-    ping -c 1 $GATEWAY > /dev/null 2>&1
+    ping -c 1 "$GATEWAY" > /dev/null 2>&1
     return $?
 }
 
 while true; do
-    check_gateway
-    if [ $? -eq 0 ]; then
-        # O gateway está ativo, vamos reiniciar a interface eth0
-        echo "Gateway está ativo. Reiniciando a interface eth0."
-        dhclient -r eth0 > /dev/null 2>&1
-        dhclient eth0 > /dev/null 2>&1
-        sleep 5
-    else
-        # O gateway não está ativo, vamos testar a cada segundo
-        echo "Gateway não está ativo. Testando novamente em 1 segundo."
+    if check_gateway; then
+        echo "Gateway está ativo. Verificando novamente em 1 segundo..."
         sleep 1
+    else
+        # Se o gateway não estiver ativo, reinicia a interface de rede e testa a conexão novamente
+	dhclient -r "$INTERFACE" > /dev/null 2>&1
+	dhclient "$INTERFACE" > /dev/null 2>&1
     fi
 done
+
