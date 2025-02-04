@@ -1,23 +1,30 @@
 #!/bin/bash
 
-# Defina o gateway e a interface
+# Definir o IP do gateway
 GATEWAY="192.168.1.1"
-INTERFACE="eth0"  # Substitua por sua interface de rede, se necessário
 
-# Função para verificar a conectividade com o gateway
+# Função para verificar se o gateway está ativo
 check_gateway() {
-    ping -c 1 "$GATEWAY" > /dev/null 2>&1
+    ping -c 1 -W 1 $GATEWAY > /dev/null 2>&1
     return $?
 }
 
 while true; do
-    if check_gateway; then
-        echo "Gateway está ativo. Verificando novamente em 1 segundo..."
-        sleep 1
+    check_gateway
+    if [ $? -ne 0 ]; then
+        # O gateway não está acessível, reiniciando a interface eth0
+        echo "Gateway inacessível. Reiniciando a interface eth0."
+        sudo ip link set eth0 down
+        sleep 2
+        sudo ip addr flush dev eth0  # Remove qualquer IP atribuído
+        sudo ip link set eth0 up
+        sleep 2
+        sudo dhclient -r eth0
+        sudo dhclient eth0
+        sleep 10  # Espera um pouco antes de testar novamente
     else
-        # Se o gateway não estiver ativo, reinicia a interface de rede e testa a conexão novamente
-	dhclient -r "$INTERFACE" > /dev/null 2>&1
-	dhclient "$INTERFACE" > /dev/null 2>&1
+        echo "Gateway acessível. Próxima verificação em 30 segundos."
+        sleep 30
     fi
 done
 
